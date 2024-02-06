@@ -3,6 +3,7 @@
 #[ink::contract]
 mod nft {
     use ink::prelude::string::String;
+    use ink::storage::Mapping;
 
     #[ink(storage)]
     pub struct Nft {
@@ -10,6 +11,8 @@ mod nft {
         price: u32,
         metadata: String,
         creationtime: Timestamp,
+        issued_tokens: Mapping<u32, AccountId>,
+        total_issued_tokens: u32,
     }
 
     #[ink(event)]
@@ -28,6 +31,8 @@ mod nft {
                 price,
                 metadata,
                 creationtime: Self::env().block_timestamp(),
+                issued_tokens: Mapping::new(),
+                total_issued_tokens: 0,
             }
         }
 
@@ -51,6 +56,16 @@ mod nft {
             self.creationtime
         }
 
+        #[ink(message)]
+        pub fn get_token_owner(&self, id: u32) -> Option<AccountId> {
+            self.issued_tokens.get(id)
+        }
+
+        #[ink(message)]
+        pub fn is_valid_token(&self, id: u32) -> bool {
+            self.issued_tokens.contains(id)
+        }
+
         //Write functions
         #[ink(message)]
         pub fn change_price(&mut self, new_price: u32) {
@@ -63,7 +78,16 @@ mod nft {
 
         #[ink(message)]
         #[ink(payable)]
-        pub fn drop(&mut self) {}
+        pub fn mint(&mut self, token_owner: AccountId) -> u32 {
+            if Self::env().caller() == self.owner {
+                self.issued_tokens
+                    .insert(self.total_issued_tokens, &token_owner);
+                self.total_issued_tokens += 1;
+                return self.total_issued_tokens - 1;
+            } else {
+                panic!("Only the legitimate owner of this NFT can mint NFT");
+            }
+        }
 
         #[ink(message)]
         pub fn transfer(&mut self, new_owner: AccountId) {
