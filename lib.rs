@@ -22,6 +22,11 @@ mod nft {
         #[ink(topic)]
         to: AccountId,
     }
+    #[ink(event)]
+    pub struct Issue {
+        #[ink(topic)]
+        to: AccountId,
+    }
 
     impl Nft {
         #[ink(constructor)]
@@ -68,6 +73,7 @@ mod nft {
 
         //Write functions
         #[ink(message)]
+        #[ink(payable)]
         pub fn change_price(&mut self, new_price: u32) {
             if Self::env().caller() == self.owner {
                 self.price = new_price;
@@ -81,8 +87,9 @@ mod nft {
         pub fn issue(&mut self, token_owner: AccountId) -> u32 {
             if Self::env().caller() == self.owner {
                 self.issued_tokens
-                    .insert(self.total_issued_tokens, &token_owner);
+                    .insert(&self.total_issued_tokens, &token_owner);
                 self.total_issued_tokens += 1;
+                self.env().emit_event(Issue { to: token_owner });
                 return self.total_issued_tokens - 1;
             } else {
                 panic!("Only the legitimate owner of this NFT can mint NFT");
@@ -90,6 +97,18 @@ mod nft {
         }
 
         #[ink(message)]
+        #[ink(payable)]
+        pub fn sell(&mut self, token_id: u32, new_owner: AccountId) {
+            if Self::env().caller() == self.issued_tokens.get(token_id).unwrap() {
+                self.issued_tokens.remove(token_id);
+                self.issued_tokens.insert(&token_id, &new_owner);
+            } else {
+                panic!("Only token owner can sell it");
+            }
+        }
+
+        #[ink(message)]
+        #[ink(payable)]
         pub fn transfer(&mut self, new_owner: AccountId) {
             if Self::env().caller() == self.owner {
                 self.owner = new_owner;
@@ -98,7 +117,7 @@ mod nft {
                     to: new_owner,
                 })
             } else {
-                panic!("Only the legitimate owner of this NFT can sell this");
+                panic!("Only the legitimate owner of this NFT can transfer its ownership");
             }
         }
     }
