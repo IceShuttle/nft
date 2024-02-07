@@ -45,22 +45,22 @@ mod nft {
         pub fn get_price(&self) -> u32 {
             self.price
         }
-
+        #[ink(message)]
+        pub fn get_total_issued_tokens(&self) -> u32 {
+            self.total_issued_tokens
+        }
         #[ink(message)]
         pub fn get_owner(&self) -> AccountId {
             self.owner.clone()
         }
-
         #[ink(message)]
-        pub fn get_timestamp(&self) -> Timestamp {
+        pub fn get_creation_timestamp(&self) -> Timestamp {
             self.creationtime
         }
-
         #[ink(message)]
         pub fn get_token_owner(&self, id: u32) -> Option<AccountId> {
             self.issued_tokens.get(id)
         }
-
         #[ink(message)]
         pub fn is_valid_token(&self, id: u32) -> bool {
             self.issued_tokens.contains(id)
@@ -78,7 +78,7 @@ mod nft {
 
         #[ink(message)]
         #[ink(payable)]
-        pub fn mint(&mut self, token_owner: AccountId) -> u32 {
+        pub fn issue(&mut self, token_owner: AccountId) -> u32 {
             if Self::env().caller() == self.owner {
                 self.issued_tokens
                     .insert(self.total_issued_tokens, &token_owner);
